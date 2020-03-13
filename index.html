@@ -150,9 +150,8 @@
     
     var road = L.Routing.control({
     //  router: L.routing.mapbox('pk.eyJ1Ijoi' + ACCESS_TOKEN),
-    ////  serviceUrl: 'https://router.project-osrm.org/route/v1', // Default
-    //  serviceUrl: 'http://osrm.roadcontroller.ru/route/v1',
-      serviceUrl: 'http://osrm.roadcontroller.ru:5000/route/v1',
+      serviceUrl: 'https://router.project-osrm.org/route/v1', // Default
+    //  serviceUrl: 'http://osrm.roadcontroller.ru:5000/route/v1',
     //// Причина: не удалось выполнить запрос CORS
       plan: L.Routing.plan(waypoints, {
         createMarker: function(i, wp) {
