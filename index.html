@@ -1,0 +1,190 @@
+<!--
+2018-03 Display coordinates center of the screen in console 
+2018-06 Supports Retina displays 
+2018-11 Add control-div 'info' 
+2018-12 Add geocoder Nominatim 
+2019-01 Add tiles Digital Globe 
+2019-10 Change tiles to Mapy Traffic 
+2020-03 Add routing OSRM -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>RoadController Leaflet Example</title>
+  <meta charset="utf-8">
+  <meta name="author" content="https://www.sololearn.com/Profile/7596740">
+  <meta name="date" content="2018-03-10" scheme="YYYY-MM-DD">
+  <meta name="revised" content="2018-12-05" scheme="YYYY-MM-DD">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css" integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA==" crossorigin=""/>
+  <link rel="stylesheet" href="index.css"/>
+  <link rel="stylesheet" href="dist/leaflet-routing-machine.css"/>
+  <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js" integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA==" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder@1.6.0/dist/Control.Geocoder.js" integrity="sha512-XhAgBt1KngKYPHT2l7GCEk+1ZrS9r4Gn+PV5c3IO6gwFOp2kHgsMa/eEMXhweHBafip+5ugno1sxVUYsHG/0RA==" crossorigin=""></script>
+  <script src="index.js"></script>
+  <script src="dist/leaflet-routing-machine.js"></script>
+</head>
+<body>
+  <div id="map-layer" class="map"></div>
+  <script>
+    // //github.com/Leaflet/Leaflet
+    var overlay = new L.LayerGroup();
+    
+    var lat = 55.747, lng = 37.625;
+    
+    var osmorg = L.tileLayer(OSM_URL, {
+      attribution: 'Routes from <a href="http://project-osrm.org/">OSRM</a> | ' + OSM_ATTR,
+      subdomains: ['a', 'b', 'c'],
+      //detectRetina: (L.Browser.retina ? true : false),
+      id: 'osmorg.main'
+    }), grayscale = L.tileLayer(MAPY_URL, {
+      attribution: 'Routes from <a href="http://project-osrm.org/">OSRM</a> | ' + MB_ATTR,
+      subdomains: ['1', '2', '3', '4'],
+      maxZoom: 18,
+      //detectRetina: (L.Browser.retina ? true : false),
+      id: 'mapy.cz'
+    }), /*grayscale = L.tileLayer(MB_URL, {
+      attribution: 'Routes from <a href="http://project-osrm.org/">OSRM</a> | ' + MB_ATTR,
+      maxZoom: 19,
+      //detectRetina: (L.Browser.retina ? true : false),
+      id: 'mapbox.light'
+    }),*/ digitalglobe = L.tileLayer(MB_URL, {
+      attribution: 'Routes from <a href="http://project-osrm.org/">OSRM</a> | ' + MB_ATTR,
+      maxZoom: 19,
+      //detectRetina: (L.Browser.retina ? true : false),
+      id: 'digitalglobe.' + DG_MAPID
+     });
+    //osmorg.addTo(map); // Use if 'layers' not set
+    
+    var map = L.map('map-layer', {
+      minZoom: 6,
+      zoomControl: false,
+      layers: [grayscale, overlay]
+    }).setView([lat, lng], 14); // Default map
+    //L.control.zoom().addTo(map);
+    
+    var circle = new L.circleMarker([lat, lng], {
+      radius: 6.5,
+      color: 'red',
+      weight: 1,
+      fillColor: '#f03',
+      fillOpacity: 0.25
+    })
+      .bindPopup()
+      .addTo(overlay);
+    //overlay.addLayer(circle); // Show marker
+    
+    L.control.layers({
+      "Open Street Map": osmorg,
+      "Grayscale": grayscale,
+      "Global Digital": digitalglobe
+    }, {
+      "Map Center marker": overlay
+    }).addTo(map); //📜 Layers
+    //L.control.scale().addTo(map); //📐 Scale
+    
+    
+    var info = L.control({
+      position: 'topleft'
+    }), geocoder = new L.Control.Geocoder.Nominatim({
+      serviceUrl: 'https://nominatim.osm.org/', // Default
+    //  serviceUrl: 'http://geocoder.roadcontroller.ru/',
+    //// Причина: отсутствует заголовок CORS "Access-Control-Allow-Origin"
+      reverseQueryParams: {
+        "accept-language": "ru-RU",
+        format: "json",
+        zoom: 18
+      }
+    });
+    info.onAdd = function() {
+      this._div = L.DomUtil.create('div', 'info');
+    //  this._div.id = 'geoinfo';
+      updateInfo(circle._latlng);
+      return this._div;
+    };
+    info.addTo(map); //📜 Info Layer
+    
+    map.on({
+      click: onMapClick,
+      move: function () {
+        var center = map.getCenter();
+        circle.setLatLng(center)
+      }, moveend: function () {
+        updateInfo(circle._latlng)
+      }
+    });
+    
+    function onMapClick(e) {
+      var dist = map.distance(e.latlng, circle._latlng);
+      alert('You clicked the map at ' + e.latlng + '\nDistance ' + (dist/1000).toFixed(3) + ' km');
+    }
+    
+    // //github.com/openstreetmap/Nominatim/issues/466
+    var updateInfo = debounce(updateInfo, 1000); // code 429
+    function updateInfo(props) {
+      if (overlay._mapToAdd != null) {
+        geocoder.reverse(props, map.options.crs.scale(map.getZoom()+3), function(results) {
+          var r = results[0];
+          if (r) {
+            circle
+              .setLatLng(r.center)
+              .setPopupContent(r.html || r.name)
+              //.openPopup();
+            info._div.textContent = r.name;
+          
+            /*/ Test map.panTo
+            if (map.distance(r.center, map.getCenter()) > 4) {
+              map.panTo(r.center, { duration: 0.8 }), console.log("0 == " + map.distance(props, map.getCenter()));
+            }
+            */
+          }
+        });
+      } else {
+        info._div.textContent = null;
+      }
+    }
+    
+    // //github.com/perliedman/leaflet-routing-machine
+    var waypoints = [
+      L.latLng(55.75194,37.61056),
+      L.latLng(55.73049,37.63270)
+    ];
+    
+    var road = L.Routing.control({
+    //  router: L.routing.mapbox('pk.eyJ1Ijoi' + ACCESS_TOKEN),
+    ////  serviceUrl: 'https://router.project-osrm.org/route/v1', // Default
+      serviceUrl: 'http://osrm.roadcontroller.ru/route/v1',
+      plan: L.Routing.plan(waypoints, {
+        createMarker: function(i, wp) {
+          return L.marker(wp.latLng, {
+            draggable: true,
+    //        icon: L.icon.glyph({ glyph: String.fromCharCode(65 + i) })
+          });
+        },
+        geocoder: geocoder,
+        routeWhileDragging: true
+      }),
+      routeWhileDragging: true,
+      routeDragTimeout: 250,
+      showAlternatives: true,
+      altLineOptions: {
+        styles: [
+          {color: 'black', opacity: 0.15, weight: 9},
+          {color: 'white', opacity: 0.8, weight: 6},
+          {color: 'blue', opacity: 0.5, weight: 2}
+        ]
+      }
+    })
+    .addTo(map)
+    .on('routingerror', function(e) {
+      try {
+        map.getCenter();
+      } catch (e) {
+        map.fitBounds(L.latLngBounds(waypoints));
+      }
+
+      handleError(e);
+    });
+
+    L.Routing.errorControl(road).addTo(map);
+  </script>
+</body>
+</html>
