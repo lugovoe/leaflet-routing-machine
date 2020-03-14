@@ -81,15 +81,15 @@
     }).addTo(map); //📜 Layers
     //L.control.scale().addTo(map); //📐 Scale
     
-    
+    //? https://nominatim.org/release-docs/develop/api/Reverse/
     var info = L.control({
       position: 'topleft'
     }), geocoder = new L.Control.Geocoder.Nominatim({
-      serviceUrl: 'https://nominatim.osm.org/', // Default
-    //  serviceUrl: 'http://geocoder.roadcontroller.ru/',
+    //  serviceUrl: 'https://nominatim.osm.org/', // Default
+      serviceUrl: 'https://geocoder.roadcontroller.ru/',
     //// Причина: отсутствует заголовок CORS "Access-Control-Allow-Origin"
       reverseQueryParams: {
-        "accept-language": "ru-RU",
+        "accept-language": "ru",
         format: "json",
         zoom: 18
       }
@@ -118,7 +118,7 @@
     }
     
     // //github.com/openstreetmap/Nominatim/issues/466
-    var updateInfo = debounce(updateInfo, 1000); // code 429
+    var updateInfo = debounce(updateInfo, 250); // code 429
     function updateInfo(props) {
       if (overlay._mapToAdd != null) {
         geocoder.reverse(props, map.options.crs.scale(map.getZoom()+3), function(results) {
@@ -148,24 +148,28 @@
       L.latLng(55.73049,37.63270)
     ];
     
+    //? https://www.liedman.net/leaflet-routing-machine/api/
     var road = L.Routing.control({
     //  router: L.routing.mapbox('pk.eyJ1Ijoi' + ACCESS_TOKEN),
-      serviceUrl: 'https://router.project-osrm.org/route/v1', // Default
-    //  serviceUrl: 'http://osrm.roadcontroller.ru:5000/route/v1',
-    //// Причина: не удалось выполнить запрос CORS
+    ////  serviceUrl: 'https://router.project-osrm.org/route/v1', // Default
+      serviceUrl: 'https://osrm.roadcontroller.ru/route/v1',
       plan: L.Routing.plan(waypoints, {
         createMarker: function(i, wp) {
           return L.marker(wp.latLng, {
-            draggable: true,
+            draggable: true, // Перемещать маркеры по карте
     //        icon: L.icon.glyph({ glyph: String.fromCharCode(65 + i) })
           });
         },
         geocoder: geocoder,
-        routeWhileDragging: true
+        maxGeocoderTolerance: 150, // MAX расстояние в метрах до точки для валидного адреса
+        draggableWaypoints: true, // Пемещать заданые точки на карте
+        routeWhileDragging: true // Непрерывное перестроение маршрута
       }),
-      routeWhileDragging: true,
+      addWaypoints: false, // Новые точки к треку
+      routeWhileDragging: true, // Непрерывное перестроение маршрута
       routeDragTimeout: 250,
       showAlternatives: true,
+      language: "ru",
       altLineOptions: {
         styles: [
           {color: 'black', opacity: 0.15, weight: 9},
