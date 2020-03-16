@@ -113,8 +113,8 @@
     });
     
     function onMapClick(e) {
-      var dist = map.distance(e.latlng, circle._latlng);
-      alert('You clicked the map at ' + e.latlng + '\nDistance ' + (dist/1000).toFixed(3) + ' km');
+    //  var dist = map.distance(e.latlng, circle._latlng);
+    //  alert('You clicked the map at ' + e.latlng + '\nDistance ' + (dist/1000).toFixed(3) + ' km');
     }
     
     // //github.com/openstreetmap/Nominatim/issues/466
@@ -151,8 +151,8 @@
     //? https://www.liedman.net/leaflet-routing-machine/api/
     var road = L.Routing.control({
     //  router: L.routing.mapbox('pk.eyJ1Ijoi' + ACCESS_TOKEN),
-    ////  serviceUrl: 'https://router.project-osrm.org/route/v1', // Default
-      serviceUrl: 'https://osrm.roadcontroller.ru/route/v1',
+    //  serviceUrl: 'https://router.project-osrm.org/route/v1',
+    ////  serviceUrl: 'https://osrm.roadcontroller.ru/route/v1', // Default
       plan: L.Routing.plan(waypoints, {
         createMarker: function(i, wp) {
           return L.marker(wp.latLng, {
